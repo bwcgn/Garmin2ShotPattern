@@ -1,5 +1,8 @@
 # 🏌️ Garmin2ShotPattern
 
+![Garmin2ShotPattern Header](docs/header.png)
+
+
 Transform Garmin golf shot data into ShotPattern app format with an easy-to-use command-line interface.
 Tired of manual CSV edits? This tool automates the process! Just hit some shots with your Garmin Launch Monitor on the driving range, export the data, and let Garmin2ShotPattern handle the rest.
 
