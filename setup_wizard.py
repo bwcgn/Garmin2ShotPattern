@@ -4,22 +4,21 @@ Setup wizard for configuring club mappings and column mappings.
 This creates a user-specific configuration file by parsing Garmin data.
 """
 
-from pathlib import Path
-from typing import Optional, Dict, List, Tuple
 import json
+from pathlib import Path
 
 import pandas as pd
+from InquirerPy import inquirer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from InquirerPy import inquirer
 
-from ui_helpers import create_item_table, TABLE_HEADER_STYLE
+from ui_helpers import TABLE_HEADER_STYLE, create_item_table, print_app_header
 
 console = Console()
 
 
-def load_existing_config() -> Optional[Dict]:
+def load_existing_config() -> dict | None:
     """
     Load existing configuration if it exists.
 
@@ -29,7 +28,7 @@ def load_existing_config() -> Optional[Dict]:
     config_file = Path("config.json")
     if config_file.exists():
         try:
-            with open(config_file, 'r') as f:
+            with open(config_file) as f:
                 config = json.load(f)
                 console.print("[green]✓[/green] Found existing configuration")
                 return config
@@ -37,8 +36,7 @@ def load_existing_config() -> Optional[Dict]:
             console.print(f"[yellow]Warning: Could not load existing config: {e}[/yellow]")
     return None
 
-
-def configure_units(existing_config: Optional[Dict] = None) -> Dict[str, str]:
+def configure_units(existing_config: dict | None = None) -> dict[str, str]:
     """
     Configure distance and deviation units.
 
@@ -100,7 +98,6 @@ def configure_units(existing_config: Optional[Dict] = None) -> Dict[str, str]:
         "deviation": deviation_unit
     }
 
-
 def get_garmin_files() -> list[Path]:
     """
     Get all Garmin CSV files from data/garmin directory.
@@ -118,7 +115,7 @@ def get_garmin_files() -> list[Path]:
     return files
 
 
-def select_sample_file(step_number: int = 2) -> Optional[Path]:
+def select_sample_file(step_number: int = 2) -> Path | None:
     """
     Select a sample Garmin file for configuration.
 
@@ -181,7 +178,7 @@ def select_column_mapping(
     columns: list[str],
     template_col: str,
     description: str,
-    existing_value: Optional[str],
+    existing_value: str | None,
     fallback_index: int
 ) -> str:
     """
@@ -218,9 +215,9 @@ def select_column_mapping(
 
 
 def configure_columns(
-    existing_config: Optional[Dict] = None,
+    existing_config: dict | None = None,
     step_number: int = 3
-) -> tuple[Optional[Path], Optional[Dict[str, str]]]:
+) -> tuple[Path | None, dict[str, str] | None]:
     """
     Configure which Garmin columns map to template columns.
 
@@ -304,7 +301,7 @@ def detect_clubs(file_path: Path, club_column: str) -> list[str]:
         return []
 
 
-def get_shotpattern_clubs() -> list[Dict[str, str]]:
+def get_shotpattern_clubs() -> list[dict[str, str]]:
     """
     Get list of available ShotPattern club identifiers.
 
@@ -325,10 +322,10 @@ def get_shotpattern_clubs() -> list[Dict[str, str]]:
 def configure_club_mappings(
     file_path: Path,
     club_column: str,
-    units: Dict[str, str],
-    existing_config: Optional[Dict] = None,
+    units: dict[str, str],
+    existing_config: dict | None = None,
     step_number: int = 4
-) -> tuple[Dict[str, str], Dict[str, int]]:
+) -> tuple[dict[str, str], dict[str, int]]:
     """
     Configure which Garmin clubs map to ShotPattern clubs.
 
@@ -436,10 +433,10 @@ def configure_club_mappings(
     return club_mappings, target_distances
 
 def save_configuration(
-    units: Dict[str, str],
-    column_mapping: Dict[str, str],
-    club_mappings: Dict[str, str],
-    target_distances: Dict[str, int]
+    units: dict[str, str],
+    column_mapping: dict[str, str],
+    club_mappings: dict[str, str],
+    target_distances: dict[str, int]
 ) -> Path:
     """
     Save the configuration to a JSON file.
@@ -474,10 +471,10 @@ def save_configuration(
 
 
 def display_summary(
-    units: Dict[str, str],
-    column_mapping: Dict[str, str],
-    club_mappings: Dict[str, str],
-    target_distances: Dict[str, int]
+    units: dict[str, str],
+    column_mapping: dict[str, str],
+    club_mappings: dict[str, str],
+    target_distances: dict[str, int]
 ) -> None:
     """
     Display a summary of the configuration.
@@ -540,6 +537,9 @@ def display_summary(
 def main() -> None:
     """Run the setup wizard."""
     try:
+        # Display application header
+        print_app_header(console, "Setup Configuration Wizard")
+
         # Load existing configuration if available
         existing_config = load_existing_config()
 

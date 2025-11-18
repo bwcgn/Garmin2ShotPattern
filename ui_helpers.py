@@ -3,8 +3,9 @@ Shared UI helpers and constants for Garmin2ShotPattern.
 Contains common styling, table creation utilities, and display functions.
 """
 
-from rich.table import Table
+from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
 
 # UI Style Constants
 TABLE_HEADER_STYLE = "bold magenta"
@@ -100,3 +101,29 @@ def create_stats_table(title: str, headers: list) -> Table:
         table.add_column(name, style=style, justify=justify)
 
     return table
+
+
+def print_app_header(console: Console, subtitle: str = "") -> None:
+    """
+    Display a fancy ASCII art application header.
+
+    Args:
+        console: Rich Console instance for printing
+        subtitle: Optional subtitle text to display below the header
+    """
+    console.print()
+    console.print("  [bold red]  ___                _       [/bold red] [bold yellow]___[/bold yellow]   [bold green] ___ _        _              _   _                [/bold green]")
+    console.print("  [bold red] / __|__ _ _ _ _ __ (_)_ _  [/bold red] [bold yellow]|_  )[/bold yellow]  [bold green]/ __| |_  ___| |_ _ __  __ _| |_| |_ ___ _ _ _ _  [/bold green]")
+    console.print("  [bold red]| (_ / _` | '_| '  \\| | ' \\ [/bold red]  [bold yellow]/ /[/bold yellow]   [bold green]\\__ \\ ' \\/ _ \\  _| '_ \\/ _` |  _|  _/ -_) '_| ' \\ [/bold green]")
+    console.print("  [bold red] \\___\\__,_|_| |_|_|_|_|_||_|[/bold red] [bold yellow]/___| [/bold yellow][bold green] |___/_||_\\___/\\__| .__/\\__,_|\\__|\\__\\___|_| |_||_|[/bold green]")
+    console.print("                                                     [bold green]|_|[/bold green]                              ")
+    console.print()
+    console.print("               [dim]Transform Garmin Golf Data to ShotPattern[/dim]".center(90))
+    console.print()
+
+    if subtitle:
+        console.print(f"[bold yellow]{subtitle.center(90)}[/bold yellow]")
+        console.print()
+
+
+

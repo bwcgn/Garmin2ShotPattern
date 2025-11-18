@@ -3,18 +3,16 @@
 CLI tool for transforming Garmin shot data to ShotPattern format.
 """
 
-from pathlib import Path
-from typing import Optional, Dict, Tuple
 import json
-import sys
+from pathlib import Path
 
 import click
 import pandas as pd
+from InquirerPy import inquirer
 from rich.console import Console
 from rich.table import Table
-from InquirerPy import inquirer
 
-from ui_helpers import create_header_panel, TABLE_HEADER_STYLE
+from ui_helpers import TABLE_HEADER_STYLE, create_header_panel, print_app_header
 
 console = Console()
 
@@ -30,10 +28,7 @@ def get_base_path() -> Path:
 
 
 def create_club_stats_table(
-    title: str,
-    output_df: pd.DataFrame,
-    distance_unit: str,
-    deviation_unit: str
+    title: str, output_df: pd.DataFrame, distance_unit: str, deviation_unit: str
 ) -> Table:
     """
     Create a statistics table for clubs with consistent formatting.
@@ -47,11 +42,7 @@ def create_club_stats_table(
     Returns:
         Table: A Rich Table object with club statistics
     """
-    stats_table = Table(
-        title=title,
-        show_header=True,
-        header_style=TABLE_HEADER_STYLE
-    )
+    stats_table = Table(title=title, show_header=True, header_style=TABLE_HEADER_STYLE)
     stats_table.add_column("Club", style="cyan")
     stats_table.add_column("Type", style="yellow")
     stats_table.add_column("Target", justify="right", style="green")
@@ -75,29 +66,30 @@ def create_club_stats_table(
             f"{club_data['Total'].max():.1f} {distance_unit}",
             f"{club_data['Side'].mean():.1f} {deviation_unit}",
             f"{club_data['Side'].min():.1f} {deviation_unit}",
-            f"{club_data['Side'].max():.1f} {deviation_unit}"
+            f"{club_data['Side'].max():.1f} {deviation_unit}",
         )
 
     return stats_table
 
-
-def load_config() -> Optional[Dict]:
+def load_config() -> dict | None:
     """
     Load user configuration from config.json.
 
     Returns:
-        Optional[Dict]: Configuration dictionary if successful, None otherwise
+        dict | None: Configuration dictionary if successful, None otherwise
     """
     base_path = get_base_path()
     config_file = base_path / "config.json"
     if not config_file.exists():
         console.print("[red]Error: config.json not found![/red]")
         console.print(f"[yellow]Looking in: {config_file}[/yellow]")
-        console.print("[yellow]Please run 'make configure' first to set up your configuration.[/yellow]")
+        console.print(
+            "[yellow]Please run 'make configure' first to set up your configuration.[/yellow]"
+        )
         return None
 
     try:
-        with open(config_file, 'r') as f:
+        with open(config_file, "r") as f:
             config = json.load(f)
         return config
     except Exception as e:
@@ -123,51 +115,36 @@ def get_garmin_files() -> list[Path]:
     return files
 
 
-def select_file() -> Optional[Path]:
+def select_file() -> Path | None:
     """
     Display file selection menu and return selected file.
 
     Returns:
-        Optional[Path]: Selected file path, or None if no files available
+        Path | None: Selected file path, or None if no files available
     """
     files = get_garmin_files()
-
     if not files:
         console.print("[yellow]No Garmin CSV files found in data/garmin/[/yellow]")
         return None
-
-    # Display header
-    console.print()
-    console.print(create_header_panel(
-        "Garmin2ShotPattern",
-        "Transform Garmin shot data to ShotPattern format"
-    ))
-    console.print()
 
     # Create choices for InquirerPy
     choices = []
     for file in files:
         size = file.stat().st_size
         size_str = f"{size / 1024:.1f} KB" if size > 1024 else f"{size} B"
-        choices.append({
-            "name": f"{file.name} ({size_str})",
-            "value": file
-        })
+        choices.append({"name": f"{file.name} ({size_str})", "value": file})
 
     # Prompt for selection
     selected_file = inquirer.select(
-        message="Select a Garmin file to process:",
-        choices=choices,
-        default=files[0]
+        message="Select a Garmin file to process:", choices=choices, default=files[0]
     ).execute()
 
     return selected_file
 
 
 def load_and_display_clubs(
-    file_path: Path,
-    config: Dict
-) -> tuple[Optional[pd.DataFrame], Optional[pd.Series]]:
+    file_path: Path, config: dict
+) -> tuple[pd.DataFrame | None, pd.Series | None]:
     """
     Load the Garmin file and display all clubs present.
 
@@ -176,12 +153,11 @@ def load_and_display_clubs(
         config: Configuration dictionary with column mappings
 
     Returns:
-        tuple[Optional[pd.DataFrame], Optional[pd.Series]]:
+        tuple[pd.DataFrame | None, pd.Series | None]:
             - DataFrame with shot data
             - Series with club counts
             Returns (None, None) if loading fails
     """
-    console.print()
     console.print(f"[cyan]Loading file:[/cyan] {file_path.name}")
 
     try:
@@ -201,9 +177,7 @@ def load_and_display_clubs(
 
         # Display clubs table
         table = Table(
-            title="⛳ Clubs in this Session",
-            show_header=True,
-            header_style=TABLE_HEADER_STYLE
+            title="⛳ Clubs in this Session", show_header=True, header_style=TABLE_HEADER_STYLE
         )
         table.add_column("Club Name", style="cyan", no_wrap=True)
         table.add_column("Shots", justify="right", style="yellow")
@@ -236,10 +210,7 @@ def load_and_display_clubs(
         return None, None
 
 
-def ask_target_distances(
-    club_counts: pd.Series,
-    config: Dict
-) -> Dict[str, int]:
+def ask_target_distances(club_counts: pd.Series, config: dict) -> dict[str, int]:
     """
     Ask user to configure target distances for each mapped club.
 
@@ -263,10 +234,12 @@ def ask_target_distances(
         return {}
 
     console.print()
-    console.print(create_header_panel(
-        "Target Distance Configuration",
-        f"Set target distance for each club (in {distance_unit}, default values provided)"
-    ))
+    console.print(
+        create_header_panel(
+            "Target Distance Configuration",
+            f"Set target distance for each club (in {distance_unit}, default values provided)",
+        )
+    )
     console.print()
 
     target_distances = {}
@@ -282,7 +255,7 @@ def ask_target_distances(
             default=default_distance,
             min_allowed=0,
             max_allowed=500,
-            float_allowed=False
+            float_allowed=False,
         ).execute()
 
         target_distances[club] = distance_input
@@ -290,9 +263,7 @@ def ask_target_distances(
 
     # Display summary
     table = Table(
-        title="🎯 Target Distance Summary",
-        show_header=True,
-        header_style=TABLE_HEADER_STYLE
+        title="🎯 Target Distance Summary", show_header=True, header_style=TABLE_HEADER_STYLE
     )
     table.add_column("Club", style="cyan")
     table.add_column("Shots", justify="right", style="yellow")
@@ -307,10 +278,7 @@ def ask_target_distances(
     return target_distances
 
 
-def ask_shot_types(
-    club_counts: pd.Series,
-    config: Dict
-) -> Dict[str, str]:
+def ask_shot_types(club_counts: pd.Series, config: dict) -> dict[str, str]:
     """
     Ask user to define shot type (tee shot or approach) for each mapped club.
 
@@ -330,10 +298,11 @@ def ask_shot_types(
         return {}
 
     console.print()
-    console.print(create_header_panel(
-        "Shot Type Configuration",
-        "Define whether shots are tee shots or approach shots"
-    ))
+    console.print(
+        create_header_panel(
+            "Shot Type Configuration", "Define whether shots are tee shots or approach shots"
+        )
+    )
     console.print()
 
     shot_types = {}
@@ -343,20 +312,16 @@ def ask_shot_types(
             message=f"{club} ({club_counts[club]} shots) - Select shot type:",
             choices=[
                 {"name": "🏌️  Tee shot", "value": "Tee"},
-                {"name": "🎯 Approach shot", "value": "Approach"}
+                {"name": "🎯 Approach shot", "value": "Approach"},
             ],
-            default="Approach"
+            default="Approach",
         ).execute()
 
         shot_types[club] = choice
         console.print()
 
     # Display summary
-    table = Table(
-        title="📋 Shot Type Summary",
-        show_header=True,
-        header_style=TABLE_HEADER_STYLE
-    )
+    table = Table(title="📋 Shot Type Summary", show_header=True, header_style=TABLE_HEADER_STYLE)
     table.add_column("Club", style="cyan")
     table.add_column("Shots", justify="right", style="yellow")
     table.add_column("Type", justify="center", style="green")
@@ -386,18 +351,18 @@ def review_and_remove_shots(output_df: pd.DataFrame) -> tuple[pd.DataFrame, bool
 
     # Ask if user wants to review shots
     review = inquirer.confirm(
-        message="Would you like to review and remove specific shots?",
-        default=False
+        message="Would you like to review and remove specific shots?", default=False
     ).execute()
 
     if not review:
         return output_df, False  # Return flag indicating no changes
 
     console.print()
-    console.print(create_header_panel(
-        "Shot Review & Removal",
-        "Review shots by club and select which ones to remove"
-    ))
+    console.print(
+        create_header_panel(
+            "Shot Review & Removal", "Review shots by club and select which ones to remove"
+        )
+    )
     console.print()
 
     shots_to_remove = []
@@ -412,9 +377,7 @@ def review_and_remove_shots(output_df: pd.DataFrame) -> tuple[pd.DataFrame, bool
 
         # Display all shots for this club
         shots_table = Table(
-            show_header=True,
-            header_style=TABLE_HEADER_STYLE,
-            title=f"📊 {club} Shots"
+            show_header=True, header_style=TABLE_HEADER_STYLE, title=f"📊 {club} Shots"
         )
         shots_table.add_column("#", style="dim", width=4)
         shots_table.add_column("Type", style="yellow")
@@ -426,7 +389,7 @@ def review_and_remove_shots(output_df: pd.DataFrame) -> tuple[pd.DataFrame, bool
         choices = []
         for idx, (_, row) in enumerate(club_data.iterrows(), 1):
             # Convert Target to int/float if it's a string
-            target_val = row['Target']
+            target_val = row["Target"]
             if isinstance(target_val, str):
                 try:
                     target_val = float(target_val)
@@ -438,12 +401,14 @@ def review_and_remove_shots(output_df: pd.DataFrame) -> tuple[pd.DataFrame, bool
                 str(row["Type"]),
                 f"{target_val:.0f}m",
                 f"{float(row['Total']):.2f}m",
-                f"{float(row['Side']):.2f}m"
+                f"{float(row['Side']):.2f}m",
             )
-            choices.append({
-                "name": f"#{idx:2d}  Total: {float(row['Total']):6.2f}m  Side: {float(row['Side']):6.2f}m",
-                "value": row["index"]  # Original DataFrame index
-            })
+            choices.append(
+                {
+                    "name": f"#{idx:2d}  Total: {float(row['Total']):6.2f}m  Side: {float(row['Side']):6.2f}m",
+                    "value": row["index"],  # Original DataFrame index
+                }
+            )
 
         console.print(shots_table)
         console.print()
@@ -451,8 +416,7 @@ def review_and_remove_shots(output_df: pd.DataFrame) -> tuple[pd.DataFrame, bool
         # Ask user to select shots to remove
         if len(club_data) > 0:
             remove = inquirer.confirm(
-                message=f"Remove any shots from {club}?",
-                default=False
+                message=f"Remove any shots from {club}?", default=False
             ).execute()
 
             if remove:
@@ -477,7 +441,9 @@ def review_and_remove_shots(output_df: pd.DataFrame) -> tuple[pd.DataFrame, bool
         original_count = len(output_df)
         output_df = output_df.drop(index=shots_to_remove).reset_index(drop=True)
         console.print()
-        console.print(f"[bold green]✓[/bold green] Removed {original_count - len(output_df)} shot(s)")
+        console.print(
+            f"[bold green]✓[/bold green] Removed {original_count - len(output_df)} shot(s)"
+        )
         console.print(f"[bold]Final dataset:[/bold] {len(output_df)} shots")
         console.print()
         return output_df, True  # Return flag indicating shots were removed
@@ -487,13 +453,12 @@ def review_and_remove_shots(output_df: pd.DataFrame) -> tuple[pd.DataFrame, bool
         return output_df, False  # Return flag indicating no changes
 
 
-
 def transform_and_export(
     df: pd.DataFrame,
-    target_distances: Dict[str, int],
-    shot_types: Dict[str, str],
+    target_distances: dict[str, int],
+    shot_types: dict[str, str],
     source_file: Path,
-    config: Dict
+    config: dict,
 ) -> None:
     """
     Transform the data and export to CSV in template format.
@@ -506,10 +471,9 @@ def transform_and_export(
         config: Configuration dictionary with mappings and units
     """
     console.print()
-    console.print(create_header_panel(
-        "Data Transformation",
-        "Mapping Garmin data to ShotPattern format"
-    ))
+    console.print(
+        create_header_panel("Data Transformation", "Mapping Garmin data to ShotPattern format")
+    )
     console.print()
 
     # Get mappings from config
@@ -533,18 +497,17 @@ def transform_and_export(
     df_filtered["Target"] = df_filtered[club_col].map(target_distances)
 
     # Rename distance columns
-    df_filtered = df_filtered.rename(columns={
-        column_mapping["Total"]: "Total",
-        column_mapping["Side"]: "Side"
-    })
+    df_filtered = df_filtered.rename(
+        columns={column_mapping["Total"]: "Total", column_mapping["Side"]: "Side"}
+    )
 
     # Select and reorder columns to match template
     output_df = df_filtered[["Club", "Type", "Target", "Total", "Side"]].copy()
 
     # Ensure numeric columns are proper types
-    output_df["Target"] = pd.to_numeric(output_df["Target"], errors='coerce')
-    output_df["Total"] = pd.to_numeric(output_df["Total"], errors='coerce')
-    output_df["Side"] = pd.to_numeric(output_df["Side"], errors='coerce')
+    output_df["Target"] = pd.to_numeric(output_df["Target"], errors="coerce")
+    output_df["Total"] = pd.to_numeric(output_df["Total"], errors="coerce")
+    output_df["Side"] = pd.to_numeric(output_df["Side"], errors="coerce")
 
     # Round numeric columns to 2 decimal places
     output_df["Total"] = output_df["Total"].round(2)
@@ -556,9 +519,7 @@ def transform_and_export(
 
     # Show preview table
     preview_table = Table(
-        title="📊 Data Preview (first 10 rows)",
-        show_header=True,
-        header_style=TABLE_HEADER_STYLE
+        title="📊 Data Preview (first 10 rows)", show_header=True, header_style=TABLE_HEADER_STYLE
     )
     for col in output_df.columns:
         preview_table.add_column(col, style="cyan")
@@ -570,7 +531,9 @@ def transform_and_export(
     console.print()
 
     # Statistics by club
-    console.print(create_club_stats_table("📈 Statistics by Club", output_df, distance_unit, deviation_unit))
+    console.print(
+        create_club_stats_table("📈 Statistics by Club", output_df, distance_unit, deviation_unit)
+    )
     console.print()
 
     # Review and remove shots if desired
@@ -583,14 +546,15 @@ def transform_and_export(
         console.print()
         console.print()
 
-        console.print(create_club_stats_table("📈 Final Statistics by Club", output_df, distance_unit, deviation_unit))
+        console.print(
+            create_club_stats_table(
+                "📈 Final Statistics by Club", output_df, distance_unit, deviation_unit
+            )
+        )
         console.print()
 
     # Ask for export confirmation
-    export = inquirer.confirm(
-        message="Export to CSV file?",
-        default=True
-    ).execute()
+    export = inquirer.confirm(message="Export to CSV file?", default=True).execute()
 
     if not export:
         console.print("[yellow]Export cancelled[/yellow]")
@@ -603,6 +567,7 @@ def transform_and_export(
 
     # Generate output filename
     from datetime import datetime
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     source_name = source_file.stem
     output_file = output_dir / f"{source_name}_transformed_{timestamp}.csv"
@@ -619,6 +584,9 @@ def transform_and_export(
 @click.command()
 def main() -> None:
     """Transform Garmin shot data to ShotPattern format."""
+    # Display application header
+    print_app_header(console, "Data Transformation Tool")
+
     # Load configuration
     config = load_config()
     if not config:
