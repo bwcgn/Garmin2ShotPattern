@@ -1,0 +1,34 @@
+# Ignore Python virtual environment
+venv/
+env/
+
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Ignore PyInstaller files
+build/
+dist/
+*.spec
+
+# Ignore IDE files
+.idea/
+*.swp
+*.swo
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Keep data structure but ignore CSV files in garmin folder
+# (users will add their own)
+data/garmin/*.csv
+
+# Ignore output CSV files but keep the folder
+data/output/*.csv
+!data/output/README.md
+
+# ignore config file with user-specific settings
+config.json
